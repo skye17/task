@@ -4,20 +4,28 @@ package task;
 public class ParallelHandler {
     final Object lock = new Object();
     StringBuilder line;
-    int result = 0;
+    int length;
+    int resultBalance = 0;
 
     ParallelHandler(StringBuilder line) {
         this.line = line;
+        this.length = line.length();
     }
-    // First 1/2 of string
-    class Handler1 implements Runnable {
-        int midResult = 0;
+
+    /*
+     * Deals with first half of string.
+     */
+    class ForwardHandler implements Runnable {
+        int midBalance = 0;
+        int minBalance = 0;
+        int min = 0;
         final Object midLock = new Object();
         @Override
         public void run() {
             Thread thread1 = new Thread(()-> {
                 int counter = 0;
-                for (int i = 0; i < line.length() / 4; i++) {
+                int endIndex = length/4;
+                for (int i = 0; i < endIndex; i++) {
                     if (line.charAt(i) == '(') {
                         counter++;
                     } else {
@@ -27,22 +35,30 @@ public class ParallelHandler {
                         throw new IllegalStateException("Incorrect");
                 }
                 synchronized (midLock) {
-                    midResult += counter;
+                    minBalance += counter;
+                    midBalance += counter;
                 }
             });
             Thread thread2 = new Thread(()-> {
                 int counter = 0;
-                for (int i = line.length()/2 - 1; i >= line.length() / 4; i--) {
+                int startIndex = length/4;
+                int endIndex = length/2;
+                for (int i = startIndex; i < endIndex; i++) {
                     if (line.charAt(i) == '(') {
-                        counter--;
-                    } else {
                         counter++;
+                    } else {
+                        counter--;
+                    }
+                    if (counter < min) {
+                        min = counter;
                     }
                 }
+
                 synchronized (midLock) {
-                    midResult -= counter;
+                    minBalance += min;
+                    midBalance += counter;
                 }
-            }, "thread2");
+            });
 
             try {
                 thread1.start();
@@ -51,12 +67,11 @@ public class ParallelHandler {
                 thread1.join();
                 thread2.join();
 
-                if (midResult < 0) {
+                if (midBalance < 0 || minBalance < 0) {
                     throw new IllegalStateException("Incorrect");
                 }
-                //System.out.println("Mid result for first 1/2 :" + midResult);
                 synchronized (lock) {
-                    result += midResult;
+                    resultBalance += midBalance;
                 }
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -64,15 +79,21 @@ public class ParallelHandler {
         }
     }
 
-    //First 1/2 of reversed string
-    class Handler2 implements Runnable {
-        int midResult = 0;
+    /*
+    * Deals with first half of reversed string
+     */
+    class ReversedHandler implements Runnable {
+        int midBalance = 0;
+        int minBalance = 0;
+        int min = 0;
         final Object midLock = new Object();
         @Override
         public void run() {
             Thread thread1 = new Thread(()-> {
                 int counter = 0;
-                for (int i = line.length() - 1; i > line.length() * 3/ 4; i--) {
+                int startIndex = length - 1;
+                int endIndex = length *3/4;
+                for (int i = startIndex; i > endIndex; i--) {
                     if (line.charAt(i) == '(') {
                         counter--;
                     } else {
@@ -82,20 +103,27 @@ public class ParallelHandler {
                         throw new IllegalStateException("Incorrect");
                 }
                 synchronized (midLock) {
-                    midResult += counter;
+                    minBalance += counter;
+                    midBalance += counter;
                 }
             });
             Thread thread2 = new Thread(()-> {
                 int counter = 0;
-                for (int i = line.length()/2; i <= line.length()*3/ 4; i++) {
+                int startIndex = length *3/4;
+                int endIndex = length/2;
+                for (int i = startIndex; i >= endIndex; i--) {
                     if (line.charAt(i) == '(') {
-                        counter++;
-                    } else {
                         counter--;
+                    } else {
+                        counter++;
+                    }
+                    if (counter < min) {
+                        min = counter;
                     }
                 }
                 synchronized (midLock) {
-                    midResult -= counter;
+                    minBalance += min;
+                    midBalance += counter;
                 }
             });
 
@@ -105,12 +133,11 @@ public class ParallelHandler {
 
                 thread1.join();
                 thread2.join();
-                if (midResult < 0) {
+                if (midBalance < 0 || minBalance < 0) {
                     throw new IllegalStateException("Incorrect");
                 }
-                //System.out.println("Mid result for second 1/2 :" + midResult );
                 synchronized (lock) {
-                    result -= midResult;
+                    resultBalance -= midBalance;
                 }
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -121,10 +148,10 @@ public class ParallelHandler {
 
 
     public long runParallel() throws InterruptedException {
-        long start = System.nanoTime();
+        long startTime = System.nanoTime();
 
-        Thread t1 = new Thread(new Handler1());
-        Thread t2 = new Thread(new Handler2());
+        Thread t1 = new Thread(new ForwardHandler());
+        Thread t2 = new Thread(new ReversedHandler());
 
         try {
             t1.start();
@@ -136,10 +163,9 @@ public class ParallelHandler {
             System.out.println(e.getMessage());
         }
 
-
-        long end = System.nanoTime();
-        long resultTime = end - start;
-        if (result == 0) {
+        long endTime = System.nanoTime();
+        long resultTime = endTime - startTime;
+        if (resultBalance == 0) {
             System.out.println("Correct");
         } else {
             System.out.println("Wrong");

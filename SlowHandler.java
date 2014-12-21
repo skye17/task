@@ -4,8 +4,9 @@ package task;
 public class SlowHandler {
     public long run(StringBuilder line) {
         int counter = 0;
-        long start = System.nanoTime();
-        for (int i = 0; i < line.length(); i++) {
+        int length = line.length();
+        long startTime = System.nanoTime();
+        for (int i = 0; i < length; i++) {
             if (line.charAt(i) == '(') {
                 ++counter;
             } else {
@@ -16,8 +17,8 @@ public class SlowHandler {
             if (counter < 0)
                 break;
         }
-        long end = System.nanoTime();
-        long resultTime = end - start;
+        long endTime = System.nanoTime();
+        long resultTime = endTime - startTime;
         if (counter == 0) {
             System.out.println("Correct");
         } else {

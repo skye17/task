@@ -3,8 +3,8 @@ package task;
 public class PSPHandler {
     public static void main(String[] args) throws InterruptedException {
         String pattern = "(())()";
-        StringBuilder line = new StringBuilder(Integer.MAX_VALUE/5);
-        for (int i = 0; i < Integer.MAX_VALUE/30; i++) {
+        StringBuilder line = new StringBuilder(Integer.MAX_VALUE/4);
+        for (int i = 0; i < Integer.MAX_VALUE/20; i++) {
             line.append(pattern);
         }
         long first = new SlowHandler().run(line);
